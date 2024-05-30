@@ -8,6 +8,7 @@ import com.learn.sayur.product.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+
 import java.util.List;
 
 @Service
@@ -71,6 +72,59 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    public Product updateProduct(Long id, Product product) {
+        Product existingProduct = getProductById(id);
+
+        if (existingProduct == null) {
+            return null; // Or throw an exception indicating product not found
+        }
+
+        // Update only the fields that are not null in the request body
+        if (product.getName() != null) {
+            existingProduct.setName(product.getName());
+        }
+        if (product.getPrice() != null) {
+            existingProduct.setPrice(product.getPrice());
+        }
+        if (product.getCategory() != null) {
+            existingProduct.setCategory(product.getCategory());
+        }
+        if (product.getImageUrl() != null) {
+            existingProduct.setImageUrl(product.getImageUrl());
+        }
+        if (product.getWeight() != null) {
+            existingProduct.setWeight(product.getWeight());
+        }
+        if (product.getMetadata() != null) {
+            // If metadata is present, map DTO to entity
+            Metadata newMetadataDTO = product.getMetadata();
+            Metadata existingMetadata = existingProduct.getMetadata();
+
+            if (existingMetadata == null) {
+                existingMetadata = new Metadata();
+                existingMetadata.setProduct(existingProduct);
+            }
+
+            // Update metadata fields using manual mapping
+            existingMetadata.setUnit(newMetadataDTO.getUnit());
+            existingMetadata.setWeight(newMetadataDTO.getWeight());
+            existingMetadata.setCalorie(newMetadataDTO.getCalorie());
+            existingMetadata.setProteins(newMetadataDTO.getProteins());
+            existingMetadata.setFats(newMetadataDTO.getFats());
+            existingMetadata.setIncrement(newMetadataDTO.getIncrement());
+            existingMetadata.setCarbs(newMetadataDTO.getCarbs());
+
+            existingProduct.setMetadata(existingMetadata);
+        }
+
+        return productRepository.save(existingProduct);
+    }
+
+
+
+
+
+    @Override
     public void deleteProduct(Long id) {
         Product product = getProductById(id);
         if (product != null) {
@@ -86,21 +140,3 @@ public class ProductServiceImpl implements ProductService {
 
 
 }
-
-
-
-//
-//    @Override
-//    public Product updateProduct(Long id, Product product) {
-//        Product existingProduct = getProductById(id);
-//        existingProduct.setName(product.getName());
-//        existingProduct.setPrice(product.getPrice());
-//        existingProduct.setCategory(product.getCategory());
-//        existingProduct.setImageUrl(product.getImageUrl());
-//        existingProduct.setWeight(product.getWeight());
-//        existingProduct.setMetadata(product.getMetadata());
-//        return productRepository.save(existingProduct);
-//    }
-//
-
-

@@ -102,7 +102,20 @@ public class ProductController {
 
         return ResponseEntity.ok(productDTO);
     }
-        @DeleteMapping("/{id}")
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Product> updateProduct(@PathVariable Long id, @RequestBody Product product) {
+        Product updatedProduct = productService.updateProduct(id, product);
+
+        // Check if the product was successfully updated
+        if (updatedProduct == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok(updatedProduct);
+    }
+
+    @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
         productService.deleteProduct(id);
         return ResponseEntity.noContent().build();
@@ -110,13 +123,5 @@ public class ProductController {
 
 }
 
-
-
-//    @PutMapping("/{id}")
-//    public ResponseEntity<Product> updateProduct(@PathVariable Long id, @RequestBody Product product) {
-//        Product updatedProduct = productService.updateProduct(id, product);
-//        return ResponseEntity.ok(updatedProduct);
-//    }
-//
 
 
