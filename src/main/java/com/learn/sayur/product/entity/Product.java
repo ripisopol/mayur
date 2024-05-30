@@ -1,4 +1,4 @@
-package com.learn.sayur.product.model;
+package com.learn.sayur.product.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
@@ -13,11 +13,12 @@ public class Product {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String name;
-    private double price;
+    private Double price;
     private String category;
     private String imageUrl;
     private Double weight;
 
-    @OneToOne(mappedBy = "product", fetch = FetchType.LAZY)
+    @OneToOne(mappedBy = "product", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Metadata metadata;
+
 }

@@ -3,15 +3,14 @@ package com.learn.sayur.product;
 import com.learn.sayur.product.DTO.MetadataDTO;
 import com.learn.sayur.product.DTO.ProductDTO;
 import com.learn.sayur.product.DTO.ProductWithMetadataDTO;
-import com.learn.sayur.product.model.Metadata;
-import com.learn.sayur.product.model.Product;
+import com.learn.sayur.product.entity.Metadata;
+import com.learn.sayur.product.entity.Product;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 
 @RestController
@@ -20,6 +19,37 @@ public class ProductController {
 
     @Autowired
     private ProductService productService;
+
+    @PostMapping
+    public ResponseEntity<Product> createProduct(@RequestBody ProductWithMetadataDTO productDTO) {
+        // Map DTO to entity
+        Product product = new Product();
+        product.setName(productDTO.getName());
+        product.setPrice(productDTO.getPrice());
+        product.setCategory(productDTO.getCategory());
+        product.setImageUrl(productDTO.getImageUrl());
+        product.setWeight(productDTO.getWeight());
+
+        // Create metadata entity
+        MetadataDTO metadataDTO = productDTO.getMetadata();
+        Metadata metadata = new Metadata();
+        metadata.setUnit(metadataDTO.getUnit());
+        metadata.setWeight(metadataDTO.getWeight());
+        metadata.setCalorie(metadataDTO.getCalorie());
+        metadata.setProteins(metadataDTO.getProteins());
+        metadata.setFats(metadataDTO.getFats());
+        metadata.setIncrement(metadataDTO.getIncrement());
+        metadata.setCarbs(metadataDTO.getCarbs());
+
+        // Set the association between product and metadata
+        metadata.setProduct(product);
+        product.setMetadata(metadata);
+
+        // Save product and metadata
+        Product createdProduct = productService.createProduct(product);
+
+        return ResponseEntity.ok(createdProduct);
+    }
 
     @GetMapping
     public List<ProductDTO> getAllProducts() {
@@ -41,7 +71,6 @@ public class ProductController {
         return productDTOs;
     }
 
-    // Endpoint to get product by ID
     @GetMapping("/{id}")
     public ResponseEntity<ProductWithMetadataDTO> getProductById(@PathVariable Long id) {
         Product product = productService.getProductById(id);
@@ -73,25 +102,21 @@ public class ProductController {
 
         return ResponseEntity.ok(productDTO);
     }
+        @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
+        productService.deleteProduct(id);
+        return ResponseEntity.noContent().build();
+    }
 
 }
 
 
-//    @PostMapping
-//    public ResponseEntity<Product> createProduct(@RequestBody Product product) {
-//        Product createdProduct = productService.createProduct(product);
-//        return ResponseEntity.ok(createdProduct);
-//    }
-//
+
 //    @PutMapping("/{id}")
 //    public ResponseEntity<Product> updateProduct(@PathVariable Long id, @RequestBody Product product) {
 //        Product updatedProduct = productService.updateProduct(id, product);
 //        return ResponseEntity.ok(updatedProduct);
 //    }
 //
-//    @DeleteMapping("/{id}")
-//    public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
-//        productService.deleteProduct(id);
-//        return ResponseEntity.noContent().build();
-//    }
+
 

@@ -1,8 +1,8 @@
 package com.learn.sayur.product;
 
 import com.learn.sayur.product.DTO.MetadataDTO;
-import com.learn.sayur.product.model.Metadata;
-import com.learn.sayur.product.model.Product;
+import com.learn.sayur.product.entity.Metadata;
+import com.learn.sayur.product.entity.Product;
 import com.learn.sayur.product.repository.MetadataRepository;
 import com.learn.sayur.product.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +18,11 @@ public class ProductServiceImpl implements ProductService {
 
     @Autowired
     private MetadataRepository metadataRepository;
+
+    @Override
+    public Product createProduct(Product product) {
+        return productRepository.save(product);
+    }
 
     @Override
     public List<Product> getAllProducts() {
@@ -36,6 +41,21 @@ public class ProductServiceImpl implements ProductService {
         Metadata metadata = metadataRepository.findByProductId(id);
         return mapMetadataToDTO(metadata);
     }
+    @Override
+    public Product saveProduct(Product product) {
+        // Save metadata first if it's not already persisted
+        Metadata metadata = product.getMetadata();
+        if (metadata != null && metadata.getId() == null) {
+            metadata = metadataRepository.save(metadata);
+        }
+
+        // Set the saved metadata back to the product
+        product.setMetadata(metadata);
+
+        // Save the product with the updated metadata
+        return productRepository.save(product);
+    }
+
 
     // Helper method to map Metadata entity to MetadataDTO
     private MetadataDTO mapMetadataToDTO(Metadata metadata) {
@@ -50,14 +70,25 @@ public class ProductServiceImpl implements ProductService {
         return metadataDTO;
     }
 
-    // Other methods...
+    @Override
+    public void deleteProduct(Long id) {
+        Product product = getProductById(id);
+        if (product != null) {
+            // Delete associated metadata if it exists
+            Metadata metadata = product.getMetadata();
+            if (metadata != null) {
+                metadataRepository.delete(metadata);
+            }
+            // Now delete the product
+            productRepository.delete(product);
+        }
+    }
+
+
 }
 
 
-//    @Override
-//    public Product createProduct(Product product) {
-//        return productRepository.save(product);
-//    }
+
 //
 //    @Override
 //    public Product updateProduct(Long id, Product product) {
@@ -71,9 +102,5 @@ public class ProductServiceImpl implements ProductService {
 //        return productRepository.save(existingProduct);
 //    }
 //
-//    @Override
-//    public void deleteProduct(Long id) {
-//        Product existingProduct = getProductById(id);
-//        productRepository.delete(existingProduct);
-//    }
+
 
