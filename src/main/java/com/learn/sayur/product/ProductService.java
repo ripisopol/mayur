@@ -7,6 +7,8 @@ import java.util.List;
 
 public interface ProductService {
     List<Product> getAllProducts();
+    List<Product> getProductsBySearch(String search);
+
     Product getProductById(Long id);
     MetadataDTO getMetadataForProduct(Long id);
     Product createProduct(Product product);

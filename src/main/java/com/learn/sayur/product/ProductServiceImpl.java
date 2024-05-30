@@ -22,12 +22,20 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public Product createProduct(Product product) {
+        // Assign a unique ID by incrementing the maximum existing ID by 1
+        Long maxId = productRepository.findMaxId();
+        product.setId(maxId != null ? maxId + 1 : 1L);
         return productRepository.save(product);
     }
 
     @Override
     public List<Product> getAllProducts() {
         return productRepository.findAll();
+    }
+
+    @Override
+    public List<Product> getProductsBySearch(String search) {
+        return productRepository.findByNameContainingIgnoreCase(search);
     }
 
     // Service method for fetching a single product by ID with metadata
@@ -119,6 +127,7 @@ public class ProductServiceImpl implements ProductService {
 
         return productRepository.save(existingProduct);
     }
+
 
 
 

@@ -52,10 +52,15 @@ public class ProductController {
     }
 
     @GetMapping
-    public List<ProductDTO> getAllProducts() {
-        List<Product> products = productService.getAllProducts();
-        List<ProductDTO> productDTOs = new ArrayList<>();
+    public List<ProductDTO> getAllProducts(@RequestParam(required = false) String search) {
+        List<Product> products;
+        if (search != null && !search.isEmpty()) {
+            products = productService.getProductsBySearch(search);
+        } else {
+            products = productService.getAllProducts();
+        }
 
+        List<ProductDTO> productDTOs = new ArrayList<>();
         for (Product product : products) {
             ProductDTO productDTO = new ProductDTO();
             productDTO.setId(product.getId());
@@ -120,6 +125,7 @@ public class ProductController {
         productService.deleteProduct(id);
         return ResponseEntity.noContent().build();
     }
+
 
 }
 
