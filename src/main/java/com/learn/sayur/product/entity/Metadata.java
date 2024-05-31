@@ -1,6 +1,6 @@
 package com.learn.sayur.product.entity;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.learn.sayur.product.entity.Product;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
@@ -13,11 +13,12 @@ import java.time.Instant;
 @Table(name = "metadata")
 public class Metadata {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(name = "id")
+    private Long id;  // This is the foreign key referencing the products table
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id")
+    @MapsId  // Maps the id attribute to the primary key of the associated Product entity
+    @JoinColumn(name = "id")
     @JsonIgnore
     private Product product;
 
