@@ -1,5 +1,7 @@
 package com.learn.sayur.product;
 
+import com.learn.sayur.exception.ApplicationException;
+import com.learn.sayur.exception.DataNotFoundException;
 import com.learn.sayur.product.DTO.MetadataDTO;
 import com.learn.sayur.product.DTO.ProductDTO;
 import com.learn.sayur.product.DTO.ProductWithMetadataDTO;
@@ -28,50 +30,81 @@ public class ProductController {
     }
 
     @PostMapping
-    public ResponseEntity<Product> createProduct(@RequestBody ProductWithMetadataDTO productDTO) {
-        Product product = modelMapper.map(productDTO, Product.class);
-        Metadata metadata = modelMapper.map(productDTO.getMetadata(), Metadata.class);
-        metadata.setProduct(product);
-        product.setMetadata(metadata);
-        Product createdProduct = productService.createProduct(product);
-        return ResponseEntity.ok(createdProduct);
+    public ResponseEntity<Response<Product>> createProduct(@RequestBody ProductWithMetadataDTO productDTO) {
+        try {
+            Product product = modelMapper.map(productDTO, Product.class);
+            Metadata metadata = modelMapper.map(productDTO.getMetadata(), Metadata.class);
+            metadata.setProduct(product);
+            product.setMetadata(metadata);
+            Product createdProduct = productService.createProduct(product);
+            return Response.successfulResponse("Product created successfully", createdProduct);
+        } catch (Exception ex) {
+            throw new ApplicationException("Failed to create product: " + ex.getMessage());
+        }
     }
 
     @GetMapping
-    public List<ProductDTO> getAllProducts(@RequestParam(required = false) String search) {
-        List<Product> products = search != null && !search.isEmpty() ?
-                productService.getProductsBySearch(search) :
-                productService.getAllProducts();
+    public ResponseEntity<Response<List<ProductDTO>>> getAllProducts(@RequestParam(required = false) String search) {
+        try {
+            List<Product> products = search != null && !search.isEmpty() ?
+                    productService.getProductsBySearch(search) :
+                    productService.getAllProducts();
 
-        return products.stream()
-                .map(product -> modelMapper.map(product, ProductDTO.class))
-                .collect(Collectors.toList());
+            List<ProductDTO> productDTOs = products.stream()
+                    .map(product -> modelMapper.map(product, ProductDTO.class))
+                    .collect(Collectors.toList());
+
+            return Response.successfulResponse("Products retrieved successfully", productDTOs);
+        } catch (Exception ex) {
+            throw new ApplicationException("Failed to retrieve products: " + ex.getMessage());
+        }
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ProductWithMetadataDTO> getProductById(@PathVariable Long id) {
-        Product product = productService.getProductById(id);
-        if (product == null) {
-            return ResponseEntity.notFound().build();
-        }
+    public ResponseEntity<Response<ProductWithMetadataDTO>> getProductById(@PathVariable Long id) {
+        try {
+            Product product = productService.getProductById(id);
+            if (product == null) {
+                throw new DataNotFoundException("Product not found with ID: " + id);
+            }
 
-        ProductWithMetadataDTO productDTO = modelMapper.map(product, ProductWithMetadataDTO.class);
-        if (product.getMetadata() != null) {
-            productDTO.setMetadata(modelMapper.map(product.getMetadata(), MetadataDTO.class));
-        }
+            ProductWithMetadataDTO productDTO = modelMapper.map(product, ProductWithMetadataDTO.class);
+            if (product.getMetadata() != null) {
+                productDTO.setMetadata(modelMapper.map(product.getMetadata(), MetadataDTO.class));
+            }
 
-        return ResponseEntity.ok(productDTO);
+            return Response.successfulResponse("Product retrieved successfully", productDTO);
+        } catch (DataNotFoundException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new ApplicationException("Failed to retrieve product: " + ex.getMessage());
+        }
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Product> updateProduct(@PathVariable Long id, @RequestBody Product product) {
-        Product updatedProduct = productService.updateProduct(id, product);
-        return updatedProduct != null ? ResponseEntity.ok(updatedProduct) : ResponseEntity.notFound().build();
+    public ResponseEntity<Response<Product>> updateProduct(@PathVariable Long id, @RequestBody Product product) {
+        try {
+            Product updatedProduct = productService.updateProduct(id, product);
+            if (updatedProduct == null) {
+                throw new DataNotFoundException("Product not found with ID: " + id);
+            }
+            return Response.successfulResponse("Product updated successfully", updatedProduct);
+        } catch (DataNotFoundException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new ApplicationException("Failed to update product: " + ex.getMessage());
+        }
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
-        productService.deleteProduct(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<Response<Void>> deleteProduct(@PathVariable Long id) {
+        try {
+            productService.deleteProduct(id);
+            return Response.successfulResponse("Product deleted successfully");
+        } catch (DataNotFoundException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new ApplicationException("Failed to delete product: " + ex.getMessage());
+        }
     }
 }
