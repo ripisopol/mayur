@@ -1,33 +1,25 @@
-package com.learn.sayur.product.entity;
+package com.learn.sayur.cart;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
+import java.util.List;
+import java.util.ArrayList
+
 
 @Data
 @Entity
-@Table(name = "metadata")
-public class Metadata {
+@Table(name = "cart")
+public class Cart {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id")
-    @JsonIgnore
-    private Product product;
-
-    private String unit;
-    private Double weight;
-    private Integer calorie;
-    private Double proteins;
-    private Double fats;
-    private Integer increment;
-    private Double carbs;
+    @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<CartItem> cartItems = new ArrayList<>();
 
     @Column(nullable = false, updatable = false)
     @CreationTimestamp
