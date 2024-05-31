@@ -85,9 +85,6 @@ public class ProductController {
     public ResponseEntity<Response<Product>> updateProduct(@PathVariable Long id, @RequestBody Product product) {
         try {
             Product updatedProduct = productService.updateProduct(id, product);
-            if (updatedProduct == null) {
-                throw new DataNotFoundException("Product not found with ID: " + id);
-            }
             return Response.successfulResponse("Product updated successfully", updatedProduct);
         } catch (DataNotFoundException ex) {
             throw ex;

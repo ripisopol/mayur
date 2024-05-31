@@ -1,31 +1,45 @@
 package com.learn.sayur.product;
 
+import com.learn.sayur.exception.ApplicationException;
+import com.learn.sayur.exception.DataNotFoundException;
 import com.learn.sayur.product.DTO.MetadataDTO;
 import com.learn.sayur.product.entity.Metadata;
 import com.learn.sayur.product.entity.Product;
 import com.learn.sayur.product.repository.MetadataRepository;
 import com.learn.sayur.product.repository.ProductRepository;
+import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
 
 import java.util.List;
 
 @Service
 public class ProductServiceImpl implements ProductService {
+    private final ProductRepository productRepository;
+    private final MetadataRepository metadataRepository;
+    private final ModelMapper modelMapper;
 
     @Autowired
-    private ProductRepository productRepository;
-
-    @Autowired
-    private MetadataRepository metadataRepository;
+    public ProductServiceImpl(ProductRepository productRepository, MetadataRepository metadataRepository, ModelMapper modelMapper) {
+        this.productRepository = productRepository;
+        this.metadataRepository = metadataRepository;
+        this.modelMapper = modelMapper;
+    }
 
     @Override
     public Product createProduct(Product product) {
-        // Assign a unique ID by incrementing the maximum existing ID by 1
-        Long maxId = productRepository.findMaxId();
-        product.setId(maxId != null ? maxId + 1 : 1L);
-        return productRepository.save(product);
+        // Save product first
+        Product savedProduct = productRepository.save(product);
+
+        // Save metadata and link it with the saved product
+        Metadata metadata = product.getMetadata();
+        if (metadata != null) {
+            metadata.setProduct(savedProduct);
+            metadataRepository.save(metadata);
+        }
+
+        // Return the saved product
+        return savedProduct;
     }
 
     @Override
@@ -38,7 +52,6 @@ public class ProductServiceImpl implements ProductService {
         return productRepository.findByNameContainingIgnoreCase(search);
     }
 
-    // Service method for fetching a single product by ID with metadata
     @Override
     public Product getProductById(Long id) {
         return productRepository.findById(id).orElse(null);
@@ -46,37 +59,13 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public MetadataDTO getMetadataForProduct(Long id) {
-        Product product = getProductById(id);
         Metadata metadata = metadataRepository.findByProductId(id);
         return mapMetadataToDTO(metadata);
     }
-    @Override
-    public Product saveProduct(Product product) {
-        // Save metadata first if it's not already persisted
-        Metadata metadata = product.getMetadata();
-        if (metadata != null && metadata.getId() == null) {
-            metadata = metadataRepository.save(metadata);
-        }
-
-        // Set the saved metadata back to the product
-        product.setMetadata(metadata);
-
-        // Save the product with the updated metadata
-        return productRepository.save(product);
-    }
-
 
     // Helper method to map Metadata entity to MetadataDTO
     private MetadataDTO mapMetadataToDTO(Metadata metadata) {
-        MetadataDTO metadataDTO = new MetadataDTO();
-        metadataDTO.setUnit(metadata.getUnit());
-        metadataDTO.setWeight(metadata.getWeight());
-        metadataDTO.setCalorie(metadata.getCalorie());
-        metadataDTO.setProteins(metadata.getProteins());
-        metadataDTO.setFats(metadata.getFats());
-        metadataDTO.setIncrement(metadata.getIncrement());
-        metadataDTO.setCarbs(metadata.getCarbs());
-        return metadataDTO;
+        return modelMapper.map(metadata, MetadataDTO.class);
     }
 
     @Override
@@ -84,7 +73,7 @@ public class ProductServiceImpl implements ProductService {
         Product existingProduct = getProductById(id);
 
         if (existingProduct == null) {
-            return null; // Or throw an exception indicating product not found
+            throw new DataNotFoundException("Product not found with ID: " + id);
         }
 
         // Update only the fields that are not null in the request body
@@ -104,8 +93,7 @@ public class ProductServiceImpl implements ProductService {
             existingProduct.setWeight(product.getWeight());
         }
         if (product.getMetadata() != null) {
-            // If metadata is present, map DTO to entity
-            Metadata newMetadataDTO = product.getMetadata();
+            Metadata newMetadata = product.getMetadata();
             Metadata existingMetadata = existingProduct.getMetadata();
 
             if (existingMetadata == null) {
@@ -114,13 +102,7 @@ public class ProductServiceImpl implements ProductService {
             }
 
             // Update metadata fields using manual mapping
-            existingMetadata.setUnit(newMetadataDTO.getUnit());
-            existingMetadata.setWeight(newMetadataDTO.getWeight());
-            existingMetadata.setCalorie(newMetadataDTO.getCalorie());
-            existingMetadata.setProteins(newMetadataDTO.getProteins());
-            existingMetadata.setFats(newMetadataDTO.getFats());
-            existingMetadata.setIncrement(newMetadataDTO.getIncrement());
-            existingMetadata.setCarbs(newMetadataDTO.getCarbs());
+            modelMapper.map(newMetadata, existingMetadata);
 
             existingProduct.setMetadata(existingMetadata);
         }
@@ -128,24 +110,18 @@ public class ProductServiceImpl implements ProductService {
         return productRepository.save(existingProduct);
     }
 
-
-
-
-
-
     @Override
     public void deleteProduct(Long id) {
         Product product = getProductById(id);
         if (product != null) {
-            // Delete associated metadata if it exists
-            Metadata metadata = product.getMetadata();
-            if (metadata != null) {
-                metadataRepository.delete(metadata);
-            }
-            // Now delete the product
             productRepository.delete(product);
+        } else {
+            throw new DataNotFoundException("Product not found with ID: " + id);
         }
     }
 
-
+    @Override
+    public Product saveProduct(Product product) {
+        return createProduct(product);
+    }
 }
