@@ -7,6 +7,7 @@ import com.learn.sayur.product.entity.Metadata;
 import com.learn.sayur.product.entity.Product;
 import com.learn.sayur.product.repository.MetadataRepository;
 import com.learn.sayur.product.repository.ProductRepository;
+import jakarta.transaction.Transactional;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -15,6 +16,7 @@ import java.util.List;
 
 @Service
 public class ProductServiceImpl implements ProductService {
+
     private final ProductRepository productRepository;
     private final MetadataRepository metadataRepository;
     private final ModelMapper modelMapper;
@@ -27,48 +29,48 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Transactional
     public Product createProduct(Product product) {
-        // Save product first
-        Product savedProduct = productRepository.save(product);
+        // Save product and metadata together
+        product = productRepository.save(product);
 
-        // Save metadata and link it with the saved product
+        // Check if metadata exists and link it with the saved product
         Metadata metadata = product.getMetadata();
         if (metadata != null) {
-            metadata.setProduct(savedProduct);
+            metadata.setProduct(product);
             metadataRepository.save(metadata);
         }
 
-        // Return the saved product
-        return savedProduct;
+        return product;
     }
 
     @Override
+    @Transactional
     public List<Product> getAllProducts() {
         return productRepository.findAll();
     }
 
     @Override
+    @Transactional
     public List<Product> getProductsBySearch(String search) {
         return productRepository.findByNameContainingIgnoreCase(search);
     }
 
     @Override
+    @Transactional
     public Product getProductById(Long id) {
         return productRepository.findById(id).orElse(null);
     }
 
     @Override
+    @Transactional
     public MetadataDTO getMetadataForProduct(Long id) {
         Metadata metadata = metadataRepository.findByProductId(id);
-        return mapMetadataToDTO(metadata);
-    }
-
-    // Helper method to map Metadata entity to MetadataDTO
-    private MetadataDTO mapMetadataToDTO(Metadata metadata) {
         return modelMapper.map(metadata, MetadataDTO.class);
     }
 
     @Override
+    @Transactional
     public Product updateProduct(Long id, Product product) {
         Product existingProduct = getProductById(id);
 
@@ -76,52 +78,19 @@ public class ProductServiceImpl implements ProductService {
             throw new DataNotFoundException("Product not found with ID: " + id);
         }
 
-        // Update only the fields that are not null in the request body
-        if (product.getName() != null) {
-            existingProduct.setName(product.getName());
-        }
-        if (product.getPrice() != null) {
-            existingProduct.setPrice(product.getPrice());
-        }
-        if (product.getCategory() != null) {
-            existingProduct.setCategory(product.getCategory());
-        }
-        if (product.getImageUrl() != null) {
-            existingProduct.setImageUrl(product.getImageUrl());
-        }
-        if (product.getWeight() != null) {
-            existingProduct.setWeight(product.getWeight());
-        }
-        if (product.getMetadata() != null) {
-            Metadata newMetadata = product.getMetadata();
-            Metadata existingMetadata = existingProduct.getMetadata();
-
-            if (existingMetadata == null) {
-                existingMetadata = new Metadata();
-                existingMetadata.setProduct(existingProduct);
-            }
-
-            // Update metadata fields using manual mapping
-            modelMapper.map(newMetadata, existingMetadata);
-
-            existingProduct.setMetadata(existingMetadata);
-        }
+        // Update product fields
+        modelMapper.map(product, existingProduct);
 
         return productRepository.save(existingProduct);
     }
 
     @Override
+    @Transactional
     public void deleteProduct(Long id) {
         Product product = getProductById(id);
-        if (product != null) {
-            productRepository.delete(product);
-        } else {
+        if (product == null) {
             throw new DataNotFoundException("Product not found with ID: " + id);
         }
-    }
-
-    @Override
-    public Product saveProduct(Product product) {
-        return createProduct(product);
+        productRepository.delete(product);
     }
 }
